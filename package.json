@@ -1,6 +1,6 @@
 {
   "name": "@donotdev/restcrud",
-  "version": "0.1.42",
+  "version": "0.1.44",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -50,8 +50,8 @@
     "valibot": "^1.2.0"
   },
   "peerDependencies": {
-    "@donotdev/core": "^0.1.42",
-    "@donotdev/functions": "^0.1.42",
+    "@donotdev/core": "^0.1.43",
+    "@donotdev/functions": "^0.1.43",
     "express": ">=4",
     "fastify": ">=4",
     "hono": ">=4",
