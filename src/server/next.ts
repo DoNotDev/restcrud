@@ -21,14 +21,14 @@
  * @author AMBROISE PARK Consulting
  */
 
+import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextRequest } from 'next/server';
+
 import { createBulkHandler } from './bulkHandler';
 import type {
   BulkRequestContext,
   CreateBulkHandlerOptions,
 } from './bulkHandler';
-
-import type { NextApiRequest, NextApiResponse } from 'next';
-import type { NextRequest } from 'next/server';
 
 /**
  * Shape of the second argument passed by Next 13+ App Router dynamic

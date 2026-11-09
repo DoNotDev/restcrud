@@ -132,7 +132,6 @@ describe('createBulkHandler — core', () => {
   it('returns 401 with generic message on non-Error rejection', async () => {
     const handle = createBulkHandler(
       baseOptions({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         authenticate: (() => Promise.reject('bad')) as any,
       })
     );
@@ -280,8 +279,7 @@ describe('adapter: express', () => {
   it('extracts headers + body + collection and writes status/body', async () => {
     executeBulkMock.mockResolvedValueOnce(OK_RESPONSE);
 
-    const { createExpressBulkHandler } =
-      await import('../../server/express');
+    const { createExpressBulkHandler } = await import('../../server/express');
     const handler = createExpressBulkHandler(baseOptions());
 
     const statusSpy = vi.fn().mockReturnThis();
@@ -294,7 +292,6 @@ describe('adapter: express', () => {
     };
     const res = { status: statusSpy, json: jsonSpy };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handler(req as any, res as any, (() => {}) as any);
 
     expect(statusSpy).toHaveBeenCalledWith(200);
@@ -302,8 +299,7 @@ describe('adapter: express', () => {
   });
 
   it('405s non-POST methods', async () => {
-    const { createExpressBulkHandler } =
-      await import('../../server/express');
+    const { createExpressBulkHandler } = await import('../../server/express');
     const handler = createExpressBulkHandler(baseOptions());
 
     const statusSpy = vi.fn().mockReturnThis();
@@ -316,7 +312,6 @@ describe('adapter: express', () => {
     };
     const res = { status: statusSpy, json: jsonSpy };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handler(req as any, res as any, (() => {}) as any);
 
     expect(statusSpy).toHaveBeenCalledWith(405);
@@ -341,7 +336,6 @@ describe('adapter: hono', () => {
       },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await handler(honoCtx as any);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(OK_RESPONSE);
@@ -361,7 +355,6 @@ describe('adapter: hono', () => {
       },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await handler(honoCtx as any);
     expect(res.status).toBe(400);
     expect(executeBulkMock).not.toHaveBeenCalled();
@@ -374,8 +367,7 @@ describe('adapter: fastify', () => {
   it('extracts headers + body + collection and writes via reply', async () => {
     executeBulkMock.mockResolvedValueOnce(OK_RESPONSE);
 
-    const { createFastifyBulkHandler } =
-      await import('../../server/fastify');
+    const { createFastifyBulkHandler } = await import('../../server/fastify');
     const handler = createFastifyBulkHandler(baseOptions());
 
     const statusSpy = vi.fn().mockReturnThis();
@@ -387,7 +379,6 @@ describe('adapter: fastify', () => {
     };
     const reply = { status: statusSpy, send: sendSpy };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handler.call({} as any, request as any, reply as any);
 
     expect(statusSpy).toHaveBeenCalledWith(200);
@@ -409,7 +400,6 @@ describe('adapter: next (App Router)', () => {
       json: async () => VALID_BODY,
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await handler(req as any, { params: { collection: 'events' } });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(OK_RESPONSE);
@@ -426,7 +416,6 @@ describe('adapter: next (App Router)', () => {
       json: async () => VALID_BODY,
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await handler(req as any, {
       params: Promise.resolve({ collection: 'events' }),
     });
@@ -453,7 +442,6 @@ describe('adapter: next (Pages Router)', () => {
     };
     const res = { status: statusSpy, json: jsonSpy };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handler(req as any, res as any);
 
     expect(statusSpy).toHaveBeenCalledWith(200);
@@ -474,7 +462,6 @@ describe('adapter: next (Pages Router)', () => {
     };
     const res = { status: statusSpy, json: jsonSpy };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handler(req as any, res as any);
     expect(statusSpy).toHaveBeenCalledWith(405);
     expect(executeBulkMock).not.toHaveBeenCalled();

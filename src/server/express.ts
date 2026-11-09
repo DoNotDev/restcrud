@@ -15,13 +15,13 @@
  * @author AMBROISE PARK Consulting
  */
 
+import type { Request, RequestHandler, Response } from 'express';
+
 import { createBulkHandler } from './bulkHandler';
 import type {
   BulkRequestContext,
   CreateBulkHandlerOptions,
 } from './bulkHandler';
-
-import type { Request, RequestHandler, Response } from 'express';
 
 /**
  * Build an Express `RequestHandler` for `POST /:collection/bulk`.

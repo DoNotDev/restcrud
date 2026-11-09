@@ -15,13 +15,13 @@
  * @author AMBROISE PARK Consulting
  */
 
+import type { Context } from 'hono';
+
 import { createBulkHandler } from './bulkHandler';
 import type {
   BulkRequestContext,
   CreateBulkHandlerOptions,
 } from './bulkHandler';
-
-import type { Context } from 'hono';
 
 /**
  * Normalise Hono's `Headers` object to the `Record<string, string |

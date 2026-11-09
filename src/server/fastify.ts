@@ -14,13 +14,13 @@
  * @author AMBROISE PARK Consulting
  */
 
+import type { FastifyReply, FastifyRequest, RouteHandlerMethod } from 'fastify';
+
 import { createBulkHandler } from './bulkHandler';
 import type {
   BulkRequestContext,
   CreateBulkHandlerOptions,
 } from './bulkHandler';
-
-import type { FastifyReply, FastifyRequest, RouteHandlerMethod } from 'fastify';
 
 /**
  * Build a Fastify route handler for `POST /:collection/bulk`.

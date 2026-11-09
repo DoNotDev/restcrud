@@ -169,7 +169,9 @@ describe('RestCrudAdapter.bulk()', () => {
     const adapter = makeAdapter(fetchMock);
     await expect(
       adapter.bulk(COLLECTION, { deletes: ['x'] })
-    ).rejects.toMatchObject({ message: expect.stringContaining('boom') });
+    ).rejects.toMatchObject({ details: expect.objectContaining({
+        originalMessage: expect.stringContaining('boom'),
+      }) });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -200,9 +202,9 @@ describe('RestCrudAdapter.bulk()', () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
     const adapter = makeAdapter(fetchMock);
-    await expect(adapter.bulk(COLLECTION, { deletes: ['x'] })).rejects.toThrow(
-      /Failed to fetch/
-    );
+    await expect(adapter.bulk(COLLECTION, { deletes: ['x'] })).rejects.toMatchObject({
+      details: expect.objectContaining({ originalMessage: 'Failed to fetch' }),
+    });
   });
 
   it('sends the same auth headers and credentials as add()', async () => {
