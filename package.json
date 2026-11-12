@@ -1,6 +1,6 @@
 {
   "name": "@donotdev/restcrud",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -50,8 +50,8 @@
     "valibot": "^1.5.0"
   },
   "peerDependencies": {
-    "@donotdev/core": "^0.2.0",
-    "@donotdev/functions": "^0.2.0",
+    "@donotdev/core": "^0.2.3",
+    "@donotdev/functions": "^0.2.3",
     "express": ">=4",
     "fastify": ">=4",
     "hono": ">=4",
@@ -80,7 +80,7 @@
     "express": "^5.3.0",
     "fastify": "^5.12.8",
     "hono": "^4.13.17",
-    "next": "^16.4.5",
+    "next": "^16.4.6",
     "typescript": "^5.9.3"
   },
   "files": [

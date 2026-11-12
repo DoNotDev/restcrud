@@ -68,8 +68,11 @@ export function createFastifyBulkHandler<TRow = unknown>(
     request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
-    const params = request.params as { collection?: string } | undefined;
-    const collection = params?.collection;
+    const params = request.params;
+    const collection =
+      typeof params === 'object' && params !== null && 'collection' in params
+        ? params.collection
+        : undefined;
     if (typeof collection !== 'string' || collection.length === 0) {
       reply.status(400).send({ error: 'Missing collection route parameter' });
       return;

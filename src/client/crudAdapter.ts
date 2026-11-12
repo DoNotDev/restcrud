@@ -57,6 +57,11 @@ import type {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_BASE_URL = '/api/crud';
+/** `{ error, detail }` JSON a failing endpoint may return. */
+const ERROR_BODY_SCHEMA = v.object({
+  error: v.optional(v.string()),
+  detail: v.optional(v.string()),
+});
 const DEFAULT_CREDENTIALS: RequestCredentials = 'include';
 
 const defaultPathResolver: PathResolver = (baseUrl, collection, _op, id) => {
@@ -66,37 +71,32 @@ const defaultPathResolver: PathResolver = (baseUrl, collection, _op, id) => {
 
 const defaultListTransform: ListResponseTransform = (raw) => {
   if (raw && typeof raw === 'object') {
+    // why: `object` has no index signature; keys are read and type-checked one by one below
     const obj = raw as Record<string, unknown>;
     if (Array.isArray(obj['data'])) {
       return {
-        data: obj['data'] as unknown[],
+        data: obj['data'],
         total:
-          typeof obj['total'] === 'number'
-            ? (obj['total'] as number)
-            : undefined,
+          typeof obj['total'] === 'number' ? obj['total'] : undefined,
         nextCursor:
           typeof obj['nextCursor'] === 'string' || obj['nextCursor'] === null
-            ? (obj['nextCursor'] as string | null)
+            ? obj['nextCursor']
             : undefined,
       };
     }
     // Legacy / alternative shapes
     if (Array.isArray(obj['items'])) {
       return {
-        data: obj['items'] as unknown[],
+        data: obj['items'],
         total:
-          typeof obj['total'] === 'number'
-            ? (obj['total'] as number)
-            : undefined,
+          typeof obj['total'] === 'number' ? obj['total'] : undefined,
       };
     }
     if (Array.isArray(obj['results'])) {
       return {
-        data: obj['results'] as unknown[],
+        data: obj['results'],
         total:
-          typeof obj['total'] === 'number'
-            ? (obj['total'] as number)
-            : undefined,
+          typeof obj['total'] === 'number' ? obj['total'] : undefined,
       };
     }
   }
@@ -198,7 +198,8 @@ export class RestCrudAdapter implements ICrudAdapter {
       // Try to parse { error, detail } JSON body; fall back to status text.
       let message = `${res.status} ${res.statusText}`;
       try {
-        const body = (await res.json()) as { error?: string; detail?: string };
+        const parsed = v.safeParse(ERROR_BODY_SCHEMA, await res.json());
+        const body = parsed.success ? parsed.output : null;
         if (body?.error || body?.detail) {
           message = [body.error, body.detail].filter(Boolean).join(': ');
         }
@@ -213,6 +214,7 @@ export class RestCrudAdapter implements ICrudAdapter {
         id
       );
     }
+    // why (both casts): doFetch's `T` is caller-asserted; the REST response has no schema here
     if (res.status === 204) return undefined as unknown as T;
     try {
       return (await res.json()) as T;
@@ -257,9 +259,10 @@ export class RestCrudAdapter implements ICrudAdapter {
       );
       if (!data) return null;
       // Ensure id is present; trust server for everything else
+      // why: `T` is caller-asserted (ICrudAdapter); the server row is trusted, only `id` is ensured
       const out = {
         ...data,
-        id: String((data as { id?: string }).id ?? id),
+        id: String(data.id ?? id),
       } as T;
       return out;
     } catch (err) {
@@ -290,6 +293,7 @@ export class RestCrudAdapter implements ICrudAdapter {
     );
     const raw = await this.doFetch<unknown>(url, init, collection, 'query');
     const envelope = this.listTransform(raw);
+    // why: `T` is caller-asserted (ICrudAdapter); list rows are trusted, only `id` is ensured
     const items = (envelope.data as Array<T & { id?: string }>).map((row) => ({
       ...row,
       id: String(row?.id ?? ''),
@@ -460,18 +464,14 @@ export class RestCrudAdapter implements ICrudAdapter {
     // 1. Collision detection — reject ambiguous intent before any fetch.
     //    BulkCollisionError is re-thrown unwrapped so consumers can
     //    `instanceof` it regardless of which adapter produced it.
-    const collision = detectBulkCollisions({
-      inserts: inserts as Array<{ id?: string; [k: string]: unknown }>,
-      updates: updates as Array<{ id: string; patch: unknown }>,
-      deletes,
-    });
+    const collision = detectBulkCollisions({ inserts, updates, deletes });
     if (collision.where !== null) {
       throw new BulkCollisionError(collision.collisions, collision.where);
     }
 
     // 2. Empty short-circuit — no network call, zeroed result.
     if (inserts.length === 0 && updates.length === 0 && deletes.length === 0) {
-      return { insertedIds: [], updatedIds: [], deletedIds: [] };
+      return { insertedIds: [], updatedIds: [], deletedIds: [], failed: [] };
     }
 
     // 3. Per-insert schema validation (mirrors add()). `validateWithSchema`
@@ -487,8 +487,8 @@ export class RestCrudAdapter implements ICrudAdapter {
     //    propagate unwrapped — they indicate a programmer error the caller
     //    should see loud, not a silent 500.
     const wireBody = v.parse(BulkRequestSchema, {
-      inserts: validatedInserts as Array<Record<string, unknown>>,
-      updates: updates as Array<{ id: string; patch: Record<string, unknown> }>,
+      inserts: validatedInserts,
+      updates,
       deletes,
     });
 
@@ -513,7 +513,8 @@ export class RestCrudAdapter implements ICrudAdapter {
     // 7. Validate response at the boundary — guards against server drift.
     //    A malformed response surfaces as a loud valibot error; no silent
     //    fallback.
-    return v.parse(BulkResponseSchema, raw);
+    // The REST endpoint commits the batch in one transaction: no per-row failures
+    return { ...v.parse(BulkResponseSchema, raw), failed: [] };
   }
 
   // -------------------------------------------------------------------------

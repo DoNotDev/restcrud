@@ -87,7 +87,7 @@ describe('RestCrudAdapter.bulk()', () => {
       deletes: ['e2'],
     });
 
-    expect(result).toEqual(serverBody);
+    expect(result).toEqual({ ...serverBody, failed: [] });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [calledUrl, calledInit] = fetchMock.mock.calls[0] as [
@@ -129,8 +129,8 @@ describe('RestCrudAdapter.bulk()', () => {
       deletes: [],
     });
 
-    expect(r1).toEqual({ insertedIds: [], updatedIds: [], deletedIds: [] });
-    expect(r2).toEqual({ insertedIds: [], updatedIds: [], deletedIds: [] });
+    expect(r1).toEqual({ insertedIds: [], updatedIds: [], deletedIds: [], failed: [] });
+    expect(r2).toEqual({ insertedIds: [], updatedIds: [], deletedIds: [], failed: [] });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

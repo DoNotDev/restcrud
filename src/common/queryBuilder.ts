@@ -44,10 +44,10 @@ function encodeValue(value: unknown): string {
 
 function appendWhere(params: URLSearchParams, clause: QueryWhereClause): void {
   const { field, operator, value } = clause;
-  const code = OPERATOR_CODE[operator as CrudOperator];
+  const code = OPERATOR_CODE[operator];
   if (!code) {
     throw new DoNotDevError(
-      `RestCrudAdapter: unsupported operator "${operator as string}"`,
+      `RestCrudAdapter: unsupported operator "${operator}"`,
       ERROR_CODES.INVALID_ARGUMENT,
       { context: { operator, field } }
     );
