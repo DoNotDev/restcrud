@@ -32,21 +32,13 @@ import type {
   BulkRequestContext,
   CreateBulkHandlerOptions,
 } from '../../server/bulkHandler';
+import { eventEntity } from '@dndev/test-entities';
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const ENTITY = {
-  collection: 'events',
-  namespace: 'events',
-  access: {
-    create: 'user',
-    update: 'user',
-    delete: 'user',
-    read: 'user',
-  },
-} as unknown as CreateBulkHandlerOptions['entity'];
+const ENTITY = eventEntity;
 
 const PASSTHROUGH_SCHEMA = {} as CreateBulkHandlerOptions['createSchema'];
 
@@ -161,11 +153,15 @@ describe('createBulkHandler — core', () => {
       ...patch,
     });
     const audit = vi.fn();
+    const readStored = async () => new Map<string, Record<string, unknown>>();
+    const draftSchema = {} as CreateBulkHandlerOptions['createSchema'];
 
     const handle = createBulkHandler(
       baseOptions({
         authenticate: async () => ({ uid: 'uid-42', userRole: 'admin' }),
         transact,
+        readStored,
+        draftSchema,
         mintInsertId,
         stampInsertMetadata,
         stampUpdateMetadata,
@@ -182,6 +178,8 @@ describe('createBulkHandler — core', () => {
     expect(forwarded.userRole).toBe('admin');
     expect(forwarded.ops).toEqual(VALID_BODY);
     expect(forwarded.transact).toBe(transact);
+    expect(forwarded.readStored).toBe(readStored);
+    expect(forwarded.draftCreateSchema).toBe(draftSchema);
     expect(forwarded.mintInsertId).toBe(mintInsertId);
     expect(forwarded.stampInsertMetadata).toBe(stampInsertMetadata);
     expect(forwarded.stampUpdateMetadata).toBe(stampUpdateMetadata);
@@ -204,6 +202,8 @@ describe('createBulkHandler — core', () => {
     expect(forwarded).not.toHaveProperty('stampInsertMetadata');
     expect(forwarded).not.toHaveProperty('stampUpdateMetadata');
     expect(forwarded).not.toHaveProperty('audit');
+    expect(forwarded).not.toHaveProperty('readStored');
+    expect(forwarded).not.toHaveProperty('draftCreateSchema');
   });
 
   it('returns 409 on BulkCollisionError', async () => {

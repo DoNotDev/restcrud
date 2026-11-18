@@ -38,7 +38,7 @@ import type {
 import {
   BulkCollisionError,
   BulkRequestSchema,
-  BulkResponseSchema,
+  validateBulkOutcome,
   detectBulkCollisions,
   validateWithSchema,
   wrapCrudError,
@@ -57,6 +57,22 @@ import type {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_BASE_URL = '/api/crud';
+/**
+ * The stored values a write returns: the response body when the server sends the
+ * row back (a JSON object), over the payload; otherwise the payload as sent.
+ */
+function storedValues(
+  payload: Record<string, unknown>,
+  body: unknown,
+  id: string
+): Record<string, unknown> {
+  const returned =
+    typeof body === 'object' && body !== null && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : {};
+  return { ...payload, ...returned, id };
+}
+
 /** `{ error, detail }` JSON a failing endpoint may return. */
 const ERROR_BODY_SCHEMA = v.object({
   error: v.optional(v.string()),
@@ -361,7 +377,7 @@ export class RestCrudAdapter implements ICrudAdapter {
     data: T,
     schema?: dndevSchema<T>,
     options?: CrudOperationOptions
-  ): Promise<void> {
+  ): Promise<Record<string, unknown>> {
     if (options?.signal?.aborted) throw new Error('Operation cancelled');
     const validated = schema
       ? validateWithSchema(schema, data, 'RestCrudAdapter.set')
@@ -375,7 +391,9 @@ export class RestCrudAdapter implements ICrudAdapter {
       id,
       options?.signal
     );
-    await this.doFetch<unknown>(url, init, collection, 'set', id);
+    const body = await this.doFetch<unknown>(url, init, collection, 'set', id);
+    // why: `T` is unconstrained (ICrudAdapter); entities are JSON objects by contract
+    return storedValues(validated as Record<string, unknown>, body, id);
   }
 
   async update<T>(
@@ -383,7 +401,7 @@ export class RestCrudAdapter implements ICrudAdapter {
     id: string,
     data: Partial<T>,
     options?: CrudOperationOptions
-  ): Promise<void> {
+  ): Promise<Record<string, unknown>> {
     if (options?.signal?.aborted) throw new Error('Operation cancelled');
     const url = this.pathResolver(this.baseUrl, collection, 'update', id);
     const init = this.buildInit(
@@ -394,7 +412,9 @@ export class RestCrudAdapter implements ICrudAdapter {
       id,
       options?.signal
     );
-    await this.doFetch<unknown>(url, init, collection, 'update', id);
+    const body = await this.doFetch<unknown>(url, init, collection, 'update', id);
+    // why: `T` is unconstrained (ICrudAdapter); patches are JSON objects by contract
+    return storedValues(data as Record<string, unknown>, body, id);
   }
 
   async delete(
@@ -513,8 +533,7 @@ export class RestCrudAdapter implements ICrudAdapter {
     // 7. Validate response at the boundary — guards against server drift.
     //    A malformed response surfaces as a loud valibot error; no silent
     //    fallback.
-    // The REST endpoint commits the batch in one transaction: no per-row failures
-    return { ...v.parse(BulkResponseSchema, raw), failed: [] };
+    return validateBulkOutcome(wireBody, raw);
   }
 
   // -------------------------------------------------------------------------

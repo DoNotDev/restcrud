@@ -112,6 +112,19 @@ export interface CreateBulkHandlerOptions<TRow = unknown> {
   createSchema: dndevSchema<TRow>;
   /** Valibot schema validating each update patch. */
   updateSchema: dndevSchema<Partial<TRow>>;
+  /**
+   * `createSchemas(entity).draft`: drafts saved incomplete (CRUD rule 5). A draft row sent
+   * without it is rejected (`invalid-argument`).
+   */
+  draftSchema?: ExecuteBulkParams['draftCreateSchema'];
+  /**
+   * Reads the stored rows of the updated ids (application field names, keyed by
+   * id), so each patch is validated by its resulting status (patch status ??
+   * stored status) and a published draft is checked whole, as on every other
+   * target. Required when the bulk carries updates: an update without it is
+   * rejected (500, `internal`). See {@link ExecuteBulkParams.readStored}.
+   */
+  readStored?: ExecuteBulkParams['readStored'];
   /** Per-bucket required roles. Forwarded to `executeBulk`. */
   access: EntityAccessConfig;
   /**
@@ -174,6 +187,9 @@ export interface CreateBulkHandlerOptions<TRow = unknown> {
  *   entity: eventEntity,
  *   createSchema: eventCreateSchema,
  *   updateSchema: eventUpdateSchema,
+ *   draftSchema: eventDraftSchema,
+ *   readStored: async (ids) =>
+ *     new Map((await db.select().from(events).where(inArray(events.id, [...ids]))).map((r) => [r.id, r])),
  *   access: { create: 'user', update: 'user', delete: 'user' },
  *   authenticate: async (req) => {
  *     const token = req.headers['authorization'];
@@ -206,6 +222,8 @@ export function createBulkHandler<TRow = unknown>(
     entity,
     createSchema,
     updateSchema,
+    draftSchema,
+    readStored,
     access,
     authenticate,
     transact,
@@ -261,6 +279,8 @@ export function createBulkHandler<TRow = unknown>(
         uid: auth.uid,
         userRole: auth.userRole,
         transact,
+        ...(draftSchema ? { draftCreateSchema: draftSchema } : {}),
+        ...(readStored ? { readStored } : {}),
         ...(mintInsertId ? { mintInsertId } : {}),
         ...(stampInsertMetadata ? { stampInsertMetadata } : {}),
         ...(stampUpdateMetadata ? { stampUpdateMetadata } : {}),

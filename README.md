@@ -137,6 +137,11 @@ const handle = createBulkHandler({
   entity: eventEntity,                   // from defineEntity()
   createSchema: eventCreateSchema,       // from createSchemas()
   updateSchema: eventUpdateSchema,
+  draftSchema: eventDraftSchema,         // accepts draft rows
+  // Stored rows of the updated ids: their status decides each patch's schema.
+  // Required when the bulk carries updates.
+  readStored: async (ids) =>
+    new Map((await db.select().from(events).where(inArray(events.id, [...ids]))).map((r) => [r.id, r])),
   access: { create: 'user', update: 'user', delete: 'user' },
   // Resolve { uid, userRole } from the inbound request — throw to 401.
   authenticate: async (req) => {

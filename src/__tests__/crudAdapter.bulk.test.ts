@@ -107,9 +107,30 @@ describe('RestCrudAdapter.bulk()', () => {
     });
   });
 
+  it('preserves indexed partial failures instead of manufacturing success', async () => {
+    const outcome = {
+      insertedIds: ['new-1'], updatedIds: [], deletedIds: [],
+      failed: [{ op: 'insert', index: 1, error: 'denied' }],
+    };
+    fetchMock.mockResolvedValueOnce(mockJsonResponse(outcome));
+    await expect(makeAdapter(fetchMock).bulk(COLLECTION, { inserts: [{}, {}] }))
+      .resolves.toEqual(outcome);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { insertedIds: [], updatedIds: [], deletedIds: [] },
+    { insertedIds: [], updatedIds: [], deletedIds: ['other'] },
+    { insertedIds: [], updatedIds: [], deletedIds: ['a'], failed: null },
+  ])('rejects incomplete or contradictory replies without replay: %j', async (outcome) => {
+    fetchMock.mockResolvedValueOnce(mockJsonResponse(outcome));
+    await expect(makeAdapter(fetchMock).bulk(COLLECTION, { deletes: ['a'] })).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('URL-encodes the collection segment', async () => {
     fetchMock.mockResolvedValueOnce(
-      mockJsonResponse({ insertedIds: [], updatedIds: [], deletedIds: [] })
+      mockJsonResponse({ insertedIds: [], updatedIds: [], deletedIds: ['a'] })
     );
 
     const adapter = makeAdapter(fetchMock);
